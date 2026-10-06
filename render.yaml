@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: calculator-832402123-api
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: DB_PATH
+        value: /app/data/calculator.sqlite
+      - key: ALLOWED_ORIGINS
+        sync: false
+    disk:
+      name: calculator-history
+      mountPath: /app/data
+      sizeGB: 1
