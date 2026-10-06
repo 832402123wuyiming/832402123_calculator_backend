@@ -2,6 +2,10 @@
 
 **Author:** WuYiming · **Student ID:** 832402123
 
+**Live API:** https://wuyiming-832402123-calculator-api.sleek-ibex-2403.chatgpt.site  
+**Health check:** https://wuyiming-832402123-calculator-api.sleek-ibex-2403.chatgpt.site/api/health  
+**Front end:** https://wuyiming-832402123-calculator.sleek-ibex-2403.chatgpt.site
+
 A standalone HTTP/JSON calculator API. The server parses arithmetic expressions, calculates results, and persists successful calculations in SQLite. The separate front end never supplies a calculated result.
 
 ## Technology and runtime
@@ -10,6 +14,8 @@ A standalone HTTP/JSON calculator API. The server parses arithmetic expressions,
 - SQLite database on disk; no database server required.
 - A handwritten recursive descent parser with exact `BigInt` fractions.
 - No third-party runtime dependencies. Runs on Windows, macOS, and Linux.
+
+The public deployment uses Cloudflare Workers and persistent D1 SQLite through Sites. `src/worker.js` is the HTTP/D1 adapter; it imports the same parser as the local Node.js API. The schema-only migration in `drizzle/0000_calculation_history.sql` initializes the hosted database during deployment. Local Node.js uses a SQLite file and initializes its table at startup.
 
 Install Node.js 24, download this repository, and open a terminal in its root. There are no packages to install; `npm install` is unnecessary.
 
@@ -96,6 +102,18 @@ The suite checks arithmetic, grammar rejection, numeric limits, division by zero
 
 ## Deploy
 
+The public Sites deployment is complete. Its D1 binding is named `DB`, and the migration is applied before the worker is published. The deployed front end and API have separate HTTPS origins. The allowed origins in `src/worker.js` include the live front end.
+
+Build the dependency-free hosted worker entrypoint with:
+
+```sh
+node scripts/build-worker.mjs
+```
+
+This combines the shared parser and production adapter into `worker/index.js`. The Node.js server and the hosted worker use the same grammar, arithmetic, result format, and API contract. The hosted service remains available independently of the local computer.
+
+The following Docker procedure is an alternative for an existing server:
+
 Use the included `Dockerfile` on an existing Docker-capable server:
 
 ```sh
@@ -115,6 +133,9 @@ src/
   service/calculator.js   Tokenizer, parser, rational arithmetic
   model/history.js        SQLite initialization and CRUD
   server.js               Service configuration and lifecycle
+  worker.js               Public Cloudflare HTTP/D1 adapter
+drizzle/                  Hosted database migration
+worker/index.js           Generated dependency-free Worker entrypoint
 test/                    Parser and HTTP/database tests
 codestyle.md             Code standards
 ```
